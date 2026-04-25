@@ -1,0 +1,242 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": 12,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5pc9lYvYUxJk",
+        "outputId": "9779ae13-6446-438a-c4bf-308d780952d5"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Project_for_AI_Data_Intern\n"
+          ]
+        }
+      ],
+      "source": [
+        "print(\"Project_for_AI_Data_Intern\");"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "\n",
+        "# Sample attendance dataset\n",
+        "data = {\n",
+        "    \"Employee_ID\": [101, 101, 102, 102, 103, 103],\n",
+        "    \"Date\": [\"2026-04-01\", \"2026-04-02\", \"2026-04-01\", \"2026-04-02\", \"2026-04-01\", \"2026-04-02\"],\n",
+        "    \"Check_In\": [\"09:05\", None, \"09:00\", \"11:30\", None, \"09:10\"],\n",
+        "    \"Source\": [\"Biometric\", \"Manual\", \"Biometric\", \"Manual\", \"Manual\", \"Biometric\"]\n",
+        "}\n",
+        "\n",
+        "df = pd.DataFrame(data)\n",
+        "\n",
+        "print(\"Raw Data:\")\n",
+        "print(df)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "4-1Ad3e2VNN_",
+        "outputId": "4fb5d2b2-4d7d-49ac-ae24-060a165789d8"
+      },
+      "execution_count": 13,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Raw Data:\n",
+            "   Employee_ID        Date Check_In     Source\n",
+            "0          101  2026-04-01    09:05  Biometric\n",
+            "1          101  2026-04-02     None     Manual\n",
+            "2          102  2026-04-01    09:00  Biometric\n",
+            "3          102  2026-04-02    11:30     Manual\n",
+            "4          103  2026-04-01     None     Manual\n",
+            "5          103  2026-04-02    09:10  Biometric\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Convert Date\n",
+        "df[\"Date\"] = pd.to_datetime(df[\"Date\"])\n",
+        "\n",
+        "# Handle missing Check_In\n",
+        "df[\"Check_In\"] = df[\"Check_In\"].fillna(\"00:00\")\n",
+        "\n",
+        "# Convert time to minutes\n",
+        "def time_to_minutes(t):\n",
+        "    h, m = map(int, t.split(\":\"))\n",
+        "    return h*60 + m\n",
+        "\n",
+        "df[\"Check_In_Minutes\"] = df[\"Check_In\"].apply(time_to_minutes)\n",
+        "\n",
+        "print(\"\\nCleaned Data:\")\n",
+        "print(df)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "t2GfoxoCVryp",
+        "outputId": "cb4ac7eb-73bf-449d-e4fe-878e7477eb01"
+      },
+      "execution_count": 14,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "Cleaned Data:\n",
+            "   Employee_ID       Date Check_In     Source  Check_In_Minutes\n",
+            "0          101 2026-04-01    09:05  Biometric               545\n",
+            "1          101 2026-04-02    00:00     Manual                 0\n",
+            "2          102 2026-04-01    09:00  Biometric               540\n",
+            "3          102 2026-04-02    11:30     Manual               690\n",
+            "4          103 2026-04-01    00:00     Manual                 0\n",
+            "5          103 2026-04-02    09:10  Biometric               550\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def detect_issue(row):\n",
+        "    if row[\"Check_In\"] == \"00:00\":\n",
+        "        return \"Missing Check-In\"\n",
+        "    elif row[\"Source\"] == \"Manual\":\n",
+        "        return \"Manual Entry\"\n",
+        "    elif row[\"Check_In_Minutes\"] > 600:\n",
+        "        return \"Late دخول\"\n",
+        "    else:\n",
+        "        return \"OK\"\n",
+        "\n",
+        "df[\"Issue\"] = df.apply(detect_issue, axis=1)"
+      ],
+      "metadata": {
+        "id": "H9nb7xVoVxh3"
+      },
+      "execution_count": 15,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.ensemble import IsolationForest\n",
+        "\n",
+        "model = IsolationForest(contamination=0.2, random_state=42)\n",
+        "df[\"Anomaly\"] = model.fit_predict(df[[\"Check_In_Minutes\"]])\n",
+        "\n",
+        "df[\"Anomaly\"] = df[\"Anomaly\"].map({1: \"Normal\", -1: \"Anomaly\"})\n"
+      ],
+      "metadata": {
+        "id": "ezIS1fhyV77y"
+      },
+      "execution_count": 16,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "report = df[[\"Employee_ID\", \"Date\", \"Issue\", \"Anomaly\"]]\n",
+        "\n",
+        "print(\"\\nFinal Report:\")\n",
+        "print(report)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "VgExjeTsWCrX",
+        "outputId": "bac5ffc8-7a10-4f79-a8bc-639c48e707b8"
+      },
+      "execution_count": 17,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "Final Report:\n",
+            "   Employee_ID       Date             Issue  Anomaly\n",
+            "0          101 2026-04-01                OK   Normal\n",
+            "1          101 2026-04-02  Missing Check-In   Normal\n",
+            "2          102 2026-04-01                OK   Normal\n",
+            "3          102 2026-04-02      Manual Entry  Anomaly\n",
+            "4          103 2026-04-01  Missing Check-In   Normal\n",
+            "5          103 2026-04-02                OK   Normal\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "summary = df[\"Issue\"].value_counts()\n",
+        "\n",
+        "print(\"\\nIssue Summary:\")\n",
+        "print(summary)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "c4V9x-CLWFsk",
+        "outputId": "6b05a433-f267-4ee9-b0b6-fb660c70c4e3"
+      },
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "Issue Summary:\n",
+            "Issue\n",
+            "OK                  3\n",
+            "Missing Check-In    2\n",
+            "Manual Entry        1\n",
+            "Name: count, dtype: int64\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "e_TuxRLVWJUx"
+      },
+      "execution_count": 18,
+      "outputs": []
+    }
+  ]
+}
